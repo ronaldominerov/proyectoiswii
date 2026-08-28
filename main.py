@@ -11,6 +11,7 @@ from PySide6.QtGui import QImage, QPixmap
 DIRECTORIO = Path(__file__).resolve().parent
 RUTA_UI = DIRECTORIO / "interfazcamara.ui"
 CARPETA_CONOCIDOS = DIRECTORIO / "known_faces"
+ruta_imagen = DIRECTORIO / "imagenes" / "fondo.jpeg"
 TOLERANCIA = 0.6
 
 
@@ -26,9 +27,17 @@ class MiVentana(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.ui)
 
-        self.resize(self.ui.sizeHint())
+        self.setFixedSize(600, 500)
         if self.ui.windowTitle():
             self.setWindowTitle(self.ui.windowTitle())
+
+        # Fondo de la ventana
+        ruta_css = ruta_imagen.as_posix()
+        self.ui.setStyleSheet(f"""
+            QWidget#{self.ui.objectName()} {{
+                border-image: url({ruta_css}) 0 0 0 0 stretch stretch;
+            }}
+        """)
 
         self.ui.lbl_camara.setText("Esperando señal de la cámara...")
         self.ui.veriButton.clicked.connect(self.verificar_asistencia)
