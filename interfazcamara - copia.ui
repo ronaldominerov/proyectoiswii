@@ -85,19 +85,6 @@ font-size: 25px;</string>
     <string>FaceCheck</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="btn_login">
-   <property name="geometry">
-    <rect>
-     <x>230</x>
-     <y>440</y>
-     <width>121</width>
-     <height>26</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>AÑADIR USUARIO</string>
-   </property>
-  </widget>
  </widget>
  <resources/>
  <connections/>

@@ -3,8 +3,10 @@ import sys
 import cv2
 import numpy as np
 import face_recognition
+import subprocess 
+
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget, QMessageBox
 from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QImage, QPixmap
 
@@ -12,6 +14,10 @@ DIRECTORIO = Path(__file__).resolve().parent
 RUTA_UI = DIRECTORIO / "interfazcamara.ui"
 CARPETA_CONOCIDOS = DIRECTORIO / "known_faces"
 ruta_imagen = DIRECTORIO / "imagenes" / "fondo.jpeg"
+ruta_logo = DIRECTORIO / "imagenes" / "logo.png"
+
+SCRIPT_LOGIN = DIRECTORIO / "login.py"  
+
 TOLERANCIA = 0.6
 
 
@@ -39,14 +45,35 @@ class MiVentana(QWidget):
             }}
         """)
 
-        self.ui.lbl_camara.setText("Esperando señal de la cámara...")
-        self.ui.veriButton.clicked.connect(self.verificar_asistencia)
+        # Logo
+        if ruta_logo.exists():
+            pixmap_logo = QPixmap(str(ruta_logo))
+            pixmap_logo = pixmap_logo.scaled(
+                self.ui.label_logo.width(),
+                self.ui.label_logo.height(),
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation,
+            )
+            self.ui.label_logo.setPixmap(pixmap_logo)
+        else:
+            print(f"Aviso: no se encontró el logo en {ruta_logo}")
 
-        # --- Estado para cámara y reconocimiento ---
-        self.frame_actual = None  # último frame BGR capturado (numpy array)
+        self.ui.lbl_camara.setText("Esperando señal de la cámara...")
+        
+       
+        self.ui.veriButton.clicked.connect(self.verificar_asistencia)
+        
+        
+        if hasattr(self.ui, 'btn_login'):
+            self.ui.btn_login.clicked.connect(self.abrir_login)
+        else:
+            print("Aviso: No se encontró un botón llamado 'btn_login' en la interfaz.")
+
+        
+        self.frame_actual = None  
         self.encodings_conocidos, self.nombres_conocidos = self.cargar_rostros_conocidos()
 
-        # --- Captura de video ---
+        
         self.cap = cv2.VideoCapture(0)
         if not self.cap.isOpened():
             self.ui.lbl_camara.setText("No se pudo abrir la cámara")
@@ -55,9 +82,15 @@ class MiVentana(QWidget):
             self.timer.timeout.connect(self.actualizar_frame)
             self.timer.start(30)  # ~33 fps
 
-    # ------------------------------------------------------------------
-    # Carga de rostros conocidos (igual que en el script standalone)
-    # ------------------------------------------------------------------
+    
+    def abrir_login(self):
+        """Abre la ventana de login como un proceso independiente."""
+        if SCRIPT_LOGIN.exists():
+            subprocess.Popen([sys.executable, str(SCRIPT_LOGIN)])
+        else:
+            QMessageBox.critical(self, "Error", f"No se encontró el archivo: {SCRIPT_LOGIN.name}")
+
+    
     def cargar_rostros_conocidos(self):
         encodings, nombres = [], []
         if not CARPETA_CONOCIDOS.exists():
@@ -78,17 +111,14 @@ class MiVentana(QWidget):
         print(f"Cargados {len(nombres)} rostros conocidos: {nombres}")
         return encodings, nombres
 
-    # ------------------------------------------------------------------
-    # Feed de video en vivo -> QLabel
-    # ------------------------------------------------------------------
+    
     def actualizar_frame(self):
         ok, frame = self.cap.read()
         if not ok:
             return
 
-        self.frame_actual = frame  # guardamos el frame BGR crudo para el botón
+        self.frame_actual = frame 
 
-        # Convertir BGR (OpenCV) -> RGB -> QImage -> QPixmap
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         h, w, ch = rgb.shape
         qimg = QImage(rgb.data, w, h, ch * w, QImage.Format_RGB888)
@@ -99,9 +129,7 @@ class MiVentana(QWidget):
         )
         self.ui.lbl_camara.setPixmap(pixmap)
 
-    # ------------------------------------------------------------------
-    # Botón VERIFICAR
-    # ------------------------------------------------------------------
+    
     def verificar_asistencia(self):
         print("Botón presionado: Verificando...")
 
@@ -121,7 +149,6 @@ class MiVentana(QWidget):
             self.mostrar_resultado_temporal("No se detectó ningún rostro")
             return
 
-        # Tomamos la primera cara detectada (podrías iterar todas si esperas varias)
         distancias = face_recognition.face_distance(self.encodings_conocidos, encodings[0])
         idx = int(np.argmin(distancias))
 
@@ -137,9 +164,7 @@ class MiVentana(QWidget):
         self.ui.lbl_camara.setText(texto)
         QTimer.singleShot(duracion_ms, self.timer.start)
 
-    # ------------------------------------------------------------------
-    # Liberar la cámara al cerrar la ventana
-    # ------------------------------------------------------------------
+    
     def closeEvent(self, event):
         if hasattr(self, "timer"):
             self.timer.stop()
