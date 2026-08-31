@@ -6,46 +6,47 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>542</width>
-    <height>445</height>
+    <width>400</width>
+    <height>300</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <widget class="QLabel" name="lbl_camara">
+  <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>160</x>
-     <y>40</y>
-     <width>201</width>
-     <height>231</height>
+     <x>150</x>
+     <y>100</y>
+     <width>131</width>
+     <height>21</height>
     </rect>
    </property>
-   <property name="frameShape">
-    <enum>QFrame::Box</enum>
-   </property>
    <property name="text">
-    <string/>
-   </property>
-   <property name="scaledContents">
-    <bool>true</bool>
-   </property>
-   <property name="margin">
-    <number>0</number>
+    <string>CONTRASEÑA</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="veriButton">
+  <widget class="QLineEdit" name="txt_password">
    <property name="geometry">
     <rect>
-     <x>180</x>
-     <y>300</y>
-     <width>151</width>
-     <height>51</height>
+     <x>140</x>
+     <y>130</y>
+     <width>113</width>
+     <height>26</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="btn_ingresar">
+   <property name="geometry">
+    <rect>
+     <x>150</x>
+     <y>180</y>
+     <width>81</width>
+     <height>26</height>
     </rect>
    </property>
    <property name="text">
-    <string>VERIFICAR</string>
+    <string>INGRESAR</string>
    </property>
   </widget>
  </widget>
