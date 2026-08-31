@@ -11,7 +11,7 @@ from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QImage, QPixmap
 
 DIRECTORIO = Path(__file__).resolve().parent
-RUTA_UI = DIRECTORIO / "interfazcamara.ui"
+RUTA_UI = DIRECTORIO / "interface/interfazcamara.ui"
 CARPETA_CONOCIDOS = DIRECTORIO / "known_faces"
 ruta_imagen = DIRECTORIO / "imagenes" / "fondo.jpeg"
 ruta_logo = DIRECTORIO / "imagenes" / "logo.png"

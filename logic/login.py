@@ -6,8 +6,8 @@ from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout,
                                QLabel, QLineEdit, QPushButton, QMessageBox)
 
 DIRECTORIO = Path(__file__).resolve().parent
-ARCHIVO_PASS = DIRECTORIO / "admin32.txt"
-SCRIPT_NUEVO_USUARIO = DIRECTORIO / "nuevousu.py"
+ARCHIVO_PASS = DIRECTORIO / "interface/admin32.txt"
+SCRIPT_NUEVO_USUARIO = DIRECTORIO / "logic/nuevousu.py"
 
 class VentanaLogin(QWidget):
     def __init__(self):
