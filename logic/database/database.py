@@ -106,6 +106,22 @@ class Database():
         except Exception as e:
             print(f"Error al recuperar los rostros: {e}")
             return []
+        
+    def getRegister(self, id_asistente, id_clase):
+        try:
+            self.cursor.execute("Select id From Registro Where id_asistente = ? and id_clase = ? and Date(fecha_hora) = Date('now', 'localtime') ", (id_asistente, id_clase))
+            
+            #Usamos fetchone porque un alumno solo debe tener un registro por clase al día
+            resultado = self.cursor.fetchone()
+            
+            if resultado:
+                return resultado[0] #Retorna el identificador limpio
+            else:
+                return None #Retorna None si el profesor no ha creado los registros del día
+                
+        except Exception as e:
+            print(f"Error al buscar el registro de hoy: {e}")
+            return None
 
 
 
