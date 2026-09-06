@@ -16,10 +16,10 @@ CARPETA_CONOCIDOS = DIRECTORIO / "known_faces"
 ruta_imagen = DIRECTORIO / "imagenes" / "fondo.jpeg"
 ruta_logo = DIRECTORIO / "imagenes" / "logo.png"
 
-SCRIPT_LOGIN = DIRECTORIO / "login.py"  
+SCRIPT_CONTRAS = DIRECTORIO / "logic/contras.py"  
+SCRIPT_LOGIN = DIRECTORIO / "logic/login.py"
 
 TOLERANCIA = 0.6
-
 
 class MiVentana(QWidget):
 
@@ -33,11 +33,10 @@ class MiVentana(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.ui)
 
-        self.setFixedSize(600, 500)
+        self.resize(600, 500)
         if self.ui.windowTitle():
             self.setWindowTitle(self.ui.windowTitle())
 
-        # Fondo de la ventana
         ruta_css = ruta_imagen.as_posix()
         self.ui.setStyleSheet(f"""
             QWidget#{self.ui.objectName()} {{
@@ -45,7 +44,6 @@ class MiVentana(QWidget):
             }}
         """)
 
-        # Logo
         if ruta_logo.exists():
             pixmap_logo = QPixmap(str(ruta_logo))
             pixmap_logo = pixmap_logo.scaled(
@@ -60,37 +58,42 @@ class MiVentana(QWidget):
 
         self.ui.lbl_camara.setText("Esperando señal de la cámara...")
         
-       
         self.ui.veriButton.clicked.connect(self.verificar_asistencia)
         
-        
         if hasattr(self.ui, 'btn_login'):
-            self.ui.btn_login.clicked.connect(self.abrir_login)
+            self.ui.btn_login.clicked.connect(self.abrir_contras)
         else:
             print("Aviso: No se encontró un botón llamado 'btn_login' en la interfaz.")
 
-        
+        if hasattr(self.ui, 'cerrar'):
+            self.ui.cerrar.clicked.connect(self.cerrar_sesion)
+        else:
+            print("Aviso: No se encontró un botón llamado 'cerrar' en la interfaz.")
+
         self.frame_actual = None  
         self.encodings_conocidos, self.nombres_conocidos = self.cargar_rostros_conocidos()
 
-        
         self.cap = cv2.VideoCapture(0)
         if not self.cap.isOpened():
             self.ui.lbl_camara.setText("No se pudo abrir la cámara")
         else:
             self.timer = QTimer(self)
             self.timer.timeout.connect(self.actualizar_frame)
-            self.timer.start(30)  # ~33 fps
+            self.timer.start(30)  
 
-    
-    def abrir_login(self):
-        """Abre la ventana de login como un proceso independiente."""
+    def abrir_contras(self):
+        if SCRIPT_CONTRAS.exists():
+            subprocess.Popen([sys.executable, str(SCRIPT_CONTRAS)])
+        else:
+            QMessageBox.critical(self, "Error", f"No se encontró el archivo: {SCRIPT_CONTRAS.name}")
+
+    def cerrar_sesion(self):
         if SCRIPT_LOGIN.exists():
             subprocess.Popen([sys.executable, str(SCRIPT_LOGIN)])
+            self.close()
         else:
             QMessageBox.critical(self, "Error", f"No se encontró el archivo: {SCRIPT_LOGIN.name}")
 
-    
     def cargar_rostros_conocidos(self):
         encodings, nombres = [], []
         if not CARPETA_CONOCIDOS.exists():
@@ -111,7 +114,6 @@ class MiVentana(QWidget):
         print(f"Cargados {len(nombres)} rostros conocidos: {nombres}")
         return encodings, nombres
 
-    
     def actualizar_frame(self):
         ok, frame = self.cap.read()
         if not ok:
@@ -129,7 +131,6 @@ class MiVentana(QWidget):
         )
         self.ui.lbl_camara.setPixmap(pixmap)
 
-    
     def verificar_asistencia(self):
         print("Botón presionado: Verificando...")
 
@@ -159,12 +160,10 @@ class MiVentana(QWidget):
             self.mostrar_resultado_temporal("Rostro no reconocido ❌")
 
     def mostrar_resultado_temporal(self, texto, duracion_ms=2000):
-        """Muestra un texto sobre el feed unos segundos sin detener la cámara."""
         self.timer.stop()
         self.ui.lbl_camara.setText(texto)
         QTimer.singleShot(duracion_ms, self.timer.start)
 
-    
     def closeEvent(self, event):
         if hasattr(self, "timer"):
             self.timer.stop()
@@ -172,11 +171,8 @@ class MiVentana(QWidget):
             self.cap.release()
         event.accept()
 
-
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-
     ventana = MiVentana()
     ventana.show()
-
     sys.exit(app.exec())

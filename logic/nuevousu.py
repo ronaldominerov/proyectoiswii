@@ -8,8 +8,12 @@ from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget, QFileDialog, Q
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 
+# IMPORTANTE: Asegúrate de que el archivo de tu base de datos se llame 'database.py' 
+# y esté en la misma carpeta, o ajusta la importación según el nombre que le hayas dado.
+from database.database import Database
+
 DIRECTORIO = Path(__file__).resolve().parent
-RUTA_UI = DIRECTORIO / "interfaz_nuevo.ui"
+RUTA_UI = DIRECTORIO.parent / "interface" / "interfaz_nuevo.ui"
 CARPETA_CONOCIDOS = DIRECTORIO / "known_faces"
 
 ruta_logo = DIRECTORIO / "imagenes" / "logo.png"
@@ -26,13 +30,12 @@ class VentanaNuevoUsuario(QWidget):
         layout.addWidget(self.ui)
         self.ui.setStyleSheet(f"""
             QWidget#{self.ui.objectName()} {{
-                background-color: #0B192C; /* Puedes cambiar este código HEX por el azul que más te guste */
+                background-color: #0B192C;
             }}
         """)
-        self.setFixedSize(500, 450) 
+        self.resize(500, 450) 
         if self.ui.windowTitle():
             self.setWindowTitle(self.ui.windowTitle())
-
        
         if ruta_logo.exists():
             pixmap_logo = QPixmap(str(ruta_logo))
@@ -75,7 +78,11 @@ class VentanaNuevoUsuario(QWidget):
             self.ui.lbl_preview_foto.setPixmap(pixmap)
 
     def guardar_usuario(self):
+        # 1. Obtener los datos de la interfaz
         nombre = self.ui.txt_nombre.text().strip()
+        telefono = self.ui.txt_telefono.text().strip()
+        contra = self.ui.txt_contra.text().strip()
+        es_admin = self.ui.radio_admin.isChecked()
 
         if not nombre:
             QMessageBox.warning(self, "Atención", "Por favor ingresa el nombre del usuario.")
@@ -85,6 +92,7 @@ class VentanaNuevoUsuario(QWidget):
             QMessageBox.warning(self, "Atención", "Por favor selecciona una fotografía.")
             return
 
+        # 2. Validación del rostro en la foto
         try:
             imagen_temporal = face_recognition.load_image_file(str(self.ruta_foto_seleccionada))
             encodings = face_recognition.face_encodings(imagen_temporal)
@@ -96,21 +104,46 @@ class VentanaNuevoUsuario(QWidget):
             QMessageBox.critical(self, "Error", f"No se pudo procesar la imagen: {e}")
             return
 
-        
+        # 3. Guardado de foto local y en Base de Datos
         extension = self.ruta_foto_seleccionada.suffix.lower()
         ruta_destino = CARPETA_CONOCIDOS / f"{nombre}{extension}"
 
         try:
+            # A) Guardar en la carpeta local (por si lo necesitas para otras lógicas)
             shutil.copy(self.ruta_foto_seleccionada, ruta_destino)
-            QMessageBox.information(self, "Éxito", f"Usuario '{nombre}' registrado correctamente.")
+
+            # B) Preparar datos para la BD
+            # El tipo debe coincidir con el Check de SQL ('admin' o 'asistente')
+            tipo_usuario = 'admin' if es_admin else 'asistente'
+
+            # Convertir la imagen a binario (BLOB) para guardarla en la base de datos
+            with open(self.ruta_foto_seleccionada, 'rb') as archivo_imagen:
+                rostro_blob = archivo_imagen.read()
+
+            # Instanciar la BD, comprobar tablas e insertar usuario
+            db = Database()
+            db.createTables()
+            db.insertUser(
+                Name=nombre, 
+                Face=rostro_blob, 
+                PhoneNumber=telefono, 
+                Type=tipo_usuario, 
+                Password=contra
+            )
+
+            QMessageBox.information(self, "Éxito", f"Usuario '{nombre}' registrado correctamente en la base de datos.")
             
+            # 4. Limpiar todos los campos del formulario tras el éxito
             self.ui.txt_nombre.clear()
+            self.ui.txt_telefono.clear()
+            self.ui.txt_contra.clear()
+            self.ui.radio_alumno.setChecked(True) # Reinicia la selección
             self.ui.lbl_preview_foto.clear()
-            self.ui.lbl_preview_foto.setText("Vista previa") # Opcional
+            self.ui.lbl_preview_foto.setText("Vista previa")
             self.ruta_foto_seleccionada = None
             
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Ocurrió un error al guardar el archivo: {e}")
+            QMessageBox.critical(self, "Error", f"Ocurrió un error al guardar: {e}")
 
 
 if __name__ == "__main__":

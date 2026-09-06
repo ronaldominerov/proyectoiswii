@@ -8,35 +8,39 @@ from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout,
 from database.database import Database
 
 DIRECTORIO = Path(__file__).resolve().parent
-SCRIPT_MAIN = DIRECTORIO.parent / "main.py"
+SCRIPT_NUEVO_USUARIO = DIRECTORIO / "nuevousu.py"
 
-class VentanaLogin(QWidget):
+class VentanaConfirmacion(QWidget):
     def __init__(self):
         super().__init__()
         
-        self.setWindowTitle("Inicio de Sesión")
-        self.setFixedSize(300, 200) 
+        self.setWindowTitle("Confirmación de Seguridad")
+        self.setFixedSize(320, 250) 
 
         layout = QVBoxLayout(self)
 
-        self.lbl_telefono = QLabel("Introduce el teléfono:")
+        self.lbl_aviso = QLabel("Por seguridad, ingrese de nuevo sus datos\npara verificar que es administrador:")
+        self.lbl_aviso.setStyleSheet("font-weight: bold; margin-bottom: 10px;")
+        
+        self.lbl_telefono = QLabel("Teléfono del administrador:")
         self.txt_telefono = QLineEdit()
         
-        self.lbl_instruccion = QLabel("Introduce la contraseña:")
+        self.lbl_instruccion = QLabel("Contraseña:")
         self.txt_password = QLineEdit()
         self.txt_password.setEchoMode(QLineEdit.Password) 
         
-        self.btn_ingresar = QPushButton("Ingresar")
+        self.btn_ingresar = QPushButton("Verificar y Continuar")
 
+        layout.addWidget(self.lbl_aviso)
         layout.addWidget(self.lbl_telefono)
         layout.addWidget(self.txt_telefono)
         layout.addWidget(self.lbl_instruccion)
         layout.addWidget(self.txt_password)
         layout.addWidget(self.btn_ingresar)
 
-        self.btn_ingresar.clicked.connect(self.verificar_credenciales)
+        self.btn_ingresar.clicked.connect(self.verificar_seguridad)
     
-    def verificar_credenciales(self):
+    def verificar_seguridad(self):
         telefono_ingresado = self.txt_telefono.text().strip()
         password_ingresada = self.txt_password.text().strip()
 
@@ -46,21 +50,20 @@ class VentanaLogin(QWidget):
 
         db = Database()
         
-        acceso_concedido = db.loginGeneral(telefono_ingresado, password_ingresada)
+        es_admin_valido = db.loginAdmin(telefono_ingresado, password_ingresada)
 
-        if acceso_concedido:
-            if SCRIPT_MAIN.exists():
-                # Aqui esta la funcion de navegar
-                subprocess.Popen([sys.executable, str(SCRIPT_MAIN)])
+        if es_admin_valido:
+            if SCRIPT_NUEVO_USUARIO.exists():
+                subprocess.Popen([sys.executable, str(SCRIPT_NUEVO_USUARIO)])
                 self.close() 
             else:
-                QMessageBox.critical(self, "Error", f"No se encontró el script {SCRIPT_MAIN.name}")
+                QMessageBox.critical(self, "Error", f"No se encontró el script {SCRIPT_NUEVO_USUARIO.name}")
         else:
-            QMessageBox.warning(self, "Acceso Denegado", "Teléfono o contraseña incorrectos.")
+            QMessageBox.warning(self, "Acceso Denegado", "Datos incorrectos o no tienes permisos de administrador.")
             self.txt_password.clear()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    ventana = VentanaLogin()
+    ventana = VentanaConfirmacion()
     ventana.show()
     sys.exit(app.exec())
