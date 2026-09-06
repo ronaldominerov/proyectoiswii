@@ -57,8 +57,6 @@ class Database():
         except Exception as e:
             print(f"Error al crear o verificar las tablas: {e}")
 
-    #Función para agregar usuarios a la tabla "Usuarios", recibe cada uno de los datos para agregarlos a la tabla (Podríamos crear un objeto de tipo Usuario)
-    #Ya está protegido contra inyecciones sql
     def insertUser(self, Name, Face, PhoneNumber,Type, Password):
         try:
             self.cursor.execute("Insert Into Usuarios (nombre, rostro, telefono, tipo, contrasenia) Values(?, ?, ?, ?, ?)",(Name, Face, PhoneNumber, Type, Password))
@@ -68,7 +66,6 @@ class Database():
         except Exception as e:
             print(f"No se pudo hacer la inserción: {e}")
 
-    #Función para agregar clases/laboratorios a la tabla "Clase", recibe cada uno de los datos
     def insertClase(self, id_admin, nombre):
         try:
             self.cursor.execute("Insert Into Clase Values(Null, ?, ?)",(id_admin,nombre))
@@ -77,10 +74,37 @@ class Database():
         except Exception as e:
             print(f"No se pudo hacer la inserción: {e}")
 
-    
-    #Función para insertar los registros de asistencia a la tabla "Registro"
-    #Esta es el primer paso, se crean todos los registros con la asistencia "False" y posteriormente cuando alguien registre asistencia 
-    # se actualizará a True junto con la fecha y hora
+    def loginAdmin(self, telefono, contrasenia):
+        try:
+            self.cursor.execute("""
+                select 1 from Usuarios  where telefono = ? and contrasenia = ? and tipo = 'admin' """, (telefono, contrasenia))
+            
+            resultado = self.cursor.fetchone()
+            
+            if resultado:
+                return True
+            else:
+                return False
+                
+        except Exception as e:
+            print(f"Error al verificar credenciales: {e}")
+            return False
+
+    def loginGeneral(self, telefono, contrasenia):
+        try:
+            self.cursor.execute("""
+                select 1 from Usuarios  where telefono = ? and contrasenia = ? """, (telefono, contrasenia))
+            
+            resultado = self.cursor.fetchone()
+            
+            if resultado:
+                return True
+            else:
+                return False
+                
+        except Exception as e:
+            print(f"Error al verificar credenciales: {e}")
+            return False
 
     def insertReg(self, id_admin, id_asistente, id_clase):
         try:
@@ -98,7 +122,6 @@ class Database():
         except Exception as e:
             print(f"No se pudo confirmar la asistencia: {e}")
 
-    #Obtención de datos
     def getAllFaces(self):
         try:
             self.cursor.execute("Select id, rostro From Usuarios")
@@ -111,17 +134,13 @@ class Database():
         try:
             self.cursor.execute("Select id From Registro Where id_asistente = ? and id_clase = ? and Date(fecha_hora) = Date('now', 'localtime') ", (id_asistente, id_clase))
             
-            #Usamos fetchone porque un alumno solo debe tener un registro por clase al día
             resultado = self.cursor.fetchone()
             
             if resultado:
-                return resultado[0] #Retorna el identificador limpio
+                return resultado[0] 
             else:
-                return None #Retorna None si el profesor no ha creado los registros del día
+                return None 
                 
         except Exception as e:
             print(f"Error al buscar el registro de hoy: {e}")
             return None
-
-
-

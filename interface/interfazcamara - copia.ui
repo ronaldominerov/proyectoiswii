@@ -85,6 +85,19 @@ font-size: 25px;</string>
     <string>FaceCheck</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="cerrar">
+   <property name="geometry">
+    <rect>
+     <x>410</x>
+     <y>30</y>
+     <width>81</width>
+     <height>26</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Cerrar Sesión</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>
