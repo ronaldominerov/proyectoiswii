@@ -1,2 +1,2 @@
-funciontelegram():
-  
+funcion_telegram():
+    
