@@ -1,2 +1,0 @@
-funcion_telegram():
-    
