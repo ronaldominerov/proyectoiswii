@@ -165,6 +165,7 @@ class MiVentana(QWidget):
 
         if nom is not None:
             self.mostrar_resultado_temporal(f"Usuario {nom} reconocido")
+            self.enviar_alerta_telegram()
             self.intentos_fallidos = 0 # Reinicia el contador si el rostro coincide
         else:
             self.intentos_fallidos += 1 # Suma 1 si no coincide
