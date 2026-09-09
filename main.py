@@ -141,6 +141,7 @@ class MiVentana(QWidget):
             self.mostrar_resultado_temporal(f"Usuario {nom} reconocido")
         else:
             self.mostrar_resultado_temporal("Rostro no reconocido")
+            contador+=1
 
     #muestra un mensaje temporal
     def mostrar_resultado_temporal(self, texto, duracion_ms=2000):
