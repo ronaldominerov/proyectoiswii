@@ -5,6 +5,9 @@ import cv2 #procesa los fotogramas, enciende y apaga la camara
 import numpy as np 
 import face_recognition #detecta y compara rostros a traves de un mapa de 128 valores (el encoding)
 import subprocess #para abrir otros scripts
+
+import requests         
+
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget, QMessageBox
 from PySide6.QtCore import QTimer, Qt
@@ -21,6 +24,10 @@ SCRIPT_CONTRAS = DIRECTORIO / "logic/contras.py"
 SCRIPT_LOGIN = DIRECTORIO / "logic/login.py"
 #CARPETA_CONOCIDOS = DIRECTORIO / "known_faces"
 #TOLERANCIA = 0.6
+
+# --- CONFIGURACIÓN DE TELEGRAM ---
+TOKEN_TELEGRAM = "8911262371:AAH6faZ1atoFqfKi0TTosW7IhN4kMwQtDpg"
+CHAT_ID = "8859127302"
 
 class MiVentana(QWidget):
     def __init__(self):
@@ -75,7 +82,8 @@ class MiVentana(QWidget):
         self.encodings_conocidos, self.nombres_conocidos = self.cargar_rostros_conocidos()
 
         #camara
-        self.frame_actual = None  #Guarda el último fotograma 
+        self.frame_actual = None  #Guarda el último fotograma
+        self.intentos_fallidos = 0
         #llama la función para cargar los rostros conocidos y sus nombres
         
         #self.ids_conocidos, self.nombres_conocidos, self.encodings_conocidos = self.cargar_desde_bd()
@@ -120,27 +128,53 @@ class MiVentana(QWidget):
             )
             self.ui.lbl_camara.setPixmap(pixmap)
 
-    
+    def enviar_alerta_telegram(self):
+        if self.frame_actual is None:
+            return
+            
+        # Convierte el frame a bytes formato JPEG directamente en memoria (sin crear archivos en el disco)
+        ok, buffer = cv2.imencode('.jpg', self.frame_actual)
+        if not ok:
+            return
+            
+        foto_bytes = buffer.tobytes()
+        url = f"https://telegram.org{TOKEN_TELEGRAM}/sendPhoto"
+        
+        payload = {
+            'chat_id': CHAT_ID,
+            'caption': "⚠️ **ALERTA DE SEGURIDAD** ⚠️\nSe han detectado 3 intentos fallidos de acceso. Posible intruso intentando ingresar."
+        }
+        files = {
+            'photo': ('intruso.jpg', foto_bytes, 'image/jpeg')
+        }
+        
+        try:
+            requests.post(url, data=payload, files=files)
+        except Exception as e:
+            print(f"Error al conectar con Telegram: {e}")
 
     #Aquí es donde se compara el rostro !!!
     def verificar_asistencia(self):
         print("Boton presionado: Verificando...")
-
         if self.frame_actual is None:
             self.ui.lbl_camara.setText("Sin imagen de camara todavia")
             return
-
-        #if not self.encodings_conocidos:
-        #    self.ui.lbl_camara.setText("No hay rostros conocidos cargados")
-        #    return
 
         rgb = cv2.cvtColor(self.frame_actual, cv2.COLOR_BGR2RGB)
         nom, distancia = self.db.faceCompare(rgb)
 
         if nom is not None:
             self.mostrar_resultado_temporal(f"Usuario {nom} reconocido")
-        else:S
-            self.mostrar_resultado_temporal("Rostro no reconocido")
+            self.intentos_fallidos = 0 # Reinicia el contador si el rostro coincide
+        else:
+            self.intentos_fallidos += 1 # Suma 1 si no coincide
+            
+            if self.intentos_fallidos >= 3:
+                self.mostrar_resultado_temporal("Acceso denegado. Enviando alerta...")
+                self.enviar_alerta_telegram()
+                self.intentos_fallidos = 0 # Reinicia el contador tras enviar la alerta
+            else:
+                self.mostrar_resultado_temporal(f"Rostro no reconocido ({self.intentos_fallidos}/3)")
         
     #muestra un mensaje temporal
     def mostrar_resultado_temporal(self, texto, duracion_ms=2000):
