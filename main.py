@@ -25,7 +25,6 @@ SCRIPT_LOGIN = DIRECTORIO / "logic/login.py"
 class MiVentana(QWidget):
     def __init__(self):
         super().__init__()
-        count=0
         loader = QUiLoader()
         self.ui = loader.load(str(RUTA_UI))
 
@@ -140,12 +139,9 @@ class MiVentana(QWidget):
 
         if nom is not None:
             self.mostrar_resultado_temporal(f"Usuario {nom} reconocido")
-        else:
-            contador+=1
+        else:S
             self.mostrar_resultado_temporal("Rostro no reconocido")
-            if count>2:
-                funcion_telegram()
-
+        
     #muestra un mensaje temporal
     def mostrar_resultado_temporal(self, texto, duracion_ms=2000):
         self.timer.stop()
