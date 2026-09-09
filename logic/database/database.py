@@ -1,8 +1,10 @@
 import sqlite3
+import face_recognition
+import numpy as np
 from pathlib import Path
 
 class Database():
-
+    TOLERANCIA = 0.6
     connection=None
     currentdir = Path(__file__).resolve().parent
     route = currentdir/"databaseFile"/"MainDatabase.db"
@@ -144,3 +146,52 @@ class Database():
         except Exception as e:
             print(f"Error al buscar el registro de hoy: {e}")
             return None
+
+    def getName(self, id_usuario):
+        try:
+            self.cursor.execute("Select nombre From Usuarios Where id = ?", (id_usuario,))
+            resultado = self.cursor.fetchone()
+            return resultado[0] if resultado else None
+        except Exception as e:
+            print(f"Error al buscar el nombre: {e}")
+            return None
+
+    #Esta func compara el rostro actual con todos los de la bd
+    def faceCompare(self, frame_rgb):
+        ubicaciones = face_recognition.face_locations(frame_rgb)
+        if not ubicaciones:
+            return None, None  # no hay ninguna cara en el frame
+
+        #calcula el encoding de la cara encontrada
+        encoding_desconocido = face_recognition.face_encodings(frame_rgb, ubicaciones)[0]
+
+        #Saca todos los encodings de la bd
+        filas = self.getAllFaces()  # [(id, blob), (id, blob), ...]
+        if not filas:
+            return None, None  #base de datos vacía
+
+        #convierte el blob en un array de numpy
+        ids = []
+        encodings_conocidos = []
+        #compara la cara desconocida con todas las caras de la bd
+        for id_usuario, blob in filas:
+            if blob is None or len(blob) !=1024: #tmb verifica que el blob sea de 128 / 1024bits
+                continue
+            encodings_conocidos.append(np.frombuffer(blob, dtype=np.float64))
+            ids.append(id_usuario)
+
+        if not encodings_conocidos:
+            return None, None
+
+        #calcula la distancia entre los otros encodings y el actual
+        distancias = face_recognition.face_distance(encodings_conocidos, encoding_desconocido)
+
+        #checa cual es la distancia mas cercana al cero
+        idx = int(np.argmin(distancias))
+
+        #debe ser menor a 0.6
+        if distancias[idx] < self.TOLERANCIA:
+            nom = self.getName(ids[idx])
+            return nom, distancias[idx]
+
+        return None, None  

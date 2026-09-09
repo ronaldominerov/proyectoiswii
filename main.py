@@ -1,28 +1,28 @@
-from pathlib import Path
-import sys
-import cv2
-import numpy as np
-import face_recognition
-import subprocess 
-
+#Librerías
+from pathlib import Path #manejo de rutas
+import sys #para cerrar la app
+import cv2 #procesa los fotogramas, enciende y apaga la camara
+import numpy as np 
+import face_recognition #detecta y compara rostros a traves de un mapa de 128 valores (el encoding)
+import subprocess #para abrir otros scripts
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget, QMessageBox
 from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QImage, QPixmap
 
+from logic.database.database import Database
+
 DIRECTORIO = Path(__file__).resolve().parent
-RUTA_UI = DIRECTORIO / "interface/interfazcamara.ui"
-CARPETA_CONOCIDOS = DIRECTORIO / "known_faces"
+RUTA_UI = DIRECTORIO / "interface" / "interfazcamara.ui"
 ruta_imagen = DIRECTORIO / "imagenes" / "fondo.jpeg"
 ruta_logo = DIRECTORIO / "imagenes" / "logo.png"
 
 SCRIPT_CONTRAS = DIRECTORIO / "logic/contras.py"  
 SCRIPT_LOGIN = DIRECTORIO / "logic/login.py"
-
-TOLERANCIA = 0.6
+#CARPETA_CONOCIDOS = DIRECTORIO / "known_faces"
+#TOLERANCIA = 0.6
 
 class MiVentana(QWidget):
-
     def __init__(self):
         super().__init__()
 
@@ -33,7 +33,7 @@ class MiVentana(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.ui)
 
-        self.resize(600, 500)
+        self.resize(600,500)
         if self.ui.windowTitle():
             self.setWindowTitle(self.ui.windowTitle())
 
@@ -56,9 +56,10 @@ class MiVentana(QWidget):
         else:
             print(f"Aviso: no se encontró el logo en {ruta_logo}")
 
-        self.ui.lbl_camara.setText("Esperando señal de la cámara...")
         
+        self.ui.lbl_camara.setText("Esperando señal de la camara...")
         self.ui.veriButton.clicked.connect(self.verificar_asistencia)
+        self.db = Database()
         
         if hasattr(self.ui, 'btn_login'):
             self.ui.btn_login.clicked.connect(self.abrir_contras)
@@ -73,13 +74,20 @@ class MiVentana(QWidget):
         self.frame_actual = None  
         self.encodings_conocidos, self.nombres_conocidos = self.cargar_rostros_conocidos()
 
-        self.cap = cv2.VideoCapture(0)
+        #camara
+        self.frame_actual = None  #Guarda el último fotograma 
+        #llama la función para cargar los rostros conocidos y sus nombres
+        
+        #self.ids_conocidos, self.nombres_conocidos, self.encodings_conocidos = self.cargar_desde_bd()
+           
+        self.cap = cv2.VideoCapture(0) #enciende la camara web principal (0)
         if not self.cap.isOpened():
-            self.ui.lbl_camara.setText("No se pudo abrir la cámara")
+            self.ui.lbl_camara.setText("No se pudo abrir la camara")
         else:
             self.timer = QTimer(self)
             self.timer.timeout.connect(self.actualizar_frame)
-            self.timer.start(30)  
+            self.timer.start(30)  #cada 30ms actualiza el frame
+
 
     def abrir_contras(self):
         if SCRIPT_CONTRAS.exists():
@@ -94,85 +102,64 @@ class MiVentana(QWidget):
         else:
             QMessageBox.critical(self, "Error", f"No se encontró el archivo: {SCRIPT_LOGIN.name}")
 
-    def cargar_rostros_conocidos(self):
-        encodings, nombres = [], []
-        if not CARPETA_CONOCIDOS.exists():
-            print(f"Aviso: no existe la carpeta {CARPETA_CONOCIDOS}")
-            return encodings, nombres
-
-        for archivo in CARPETA_CONOCIDOS.iterdir():
-            if archivo.suffix.lower() not in (".jpg", ".jpeg", ".png"):
-                continue
-            imagen = face_recognition.load_image_file(str(archivo))
-            encs = face_recognition.face_encodings(imagen)
-            if not encs:
-                print(f"Aviso: no se detectó cara en {archivo.name}, se omite")
-                continue
-            encodings.append(encs[0])
-            nombres.append(archivo.stem)
-
-        print(f"Cargados {len(nombres)} rostros conocidos: {nombres}")
-        return encodings, nombres
-
     def actualizar_frame(self):
-        ok, frame = self.cap.read()
-        if not ok:
-            return
+            ok, frame = self.cap.read() #toma una foto de la camara
+            if not ok:
+                return
+            self.frame_actual = frame #guarda la foto
+    
+            #Qt necesita la imagen en RGB, mientras que OpenCV la da en BGR
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) #convierte la foto de BGR a RGB para que Qt la pueda mostrar
+            h, w, ch = rgb.shape
+            #convierte la matriz de nums a un objeto QImage y luego a QPixmap para mostrarlo en la interfaz
+            qimg = QImage(rgb.data, w, h, ch * w, QImage.Format_RGB888)
+            pixmap = QPixmap.fromImage(qimg).scaled(
+                self.ui.lbl_camara.width(),
+                self.ui.lbl_camara.height(),
+                Qt.KeepAspectRatio,
+            )
+            self.ui.lbl_camara.setPixmap(pixmap)
 
-        self.frame_actual = frame 
+    
 
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        h, w, ch = rgb.shape
-        qimg = QImage(rgb.data, w, h, ch * w, QImage.Format_RGB888)
-        pixmap = QPixmap.fromImage(qimg).scaled(
-            self.ui.lbl_camara.width(),
-            self.ui.lbl_camara.height(),
-            Qt.KeepAspectRatio,
-        )
-        self.ui.lbl_camara.setPixmap(pixmap)
-
+    #Aquí es donde se compara el rostro !!!
     def verificar_asistencia(self):
-        print("Botón presionado: Verificando...")
+        print("Boton presionado: Verificando...")
 
         if self.frame_actual is None:
-            self.ui.lbl_camara.setText("Sin imagen de cámara todavía")
+            self.ui.lbl_camara.setText("Sin imagen de camara todavia")
             return
 
-        if not self.encodings_conocidos:
-            self.ui.lbl_camara.setText("No hay rostros conocidos cargados")
-            return
+        #if not self.encodings_conocidos:
+        #    self.ui.lbl_camara.setText("No hay rostros conocidos cargados")
+        #    return
 
         rgb = cv2.cvtColor(self.frame_actual, cv2.COLOR_BGR2RGB)
-        ubicaciones = face_recognition.face_locations(rgb)
-        encodings = face_recognition.face_encodings(rgb, ubicaciones)
+        nom, distancia = self.db.faceCompare(rgb)
 
-        if not encodings:
-            self.mostrar_resultado_temporal("No se detectó ningún rostro")
-            return
-
-        distancias = face_recognition.face_distance(self.encodings_conocidos, encodings[0])
-        idx = int(np.argmin(distancias))
-
-        if distancias[idx] < TOLERANCIA:
-            nombre = self.nombres_conocidos[idx]
-            self.mostrar_resultado_temporal(f"¡Bienvenido, {nombre}! ✅")
+        if nom is not None:
+            self.mostrar_resultado_temporal(f"Usuario {nom} reconocido")
         else:
-            self.mostrar_resultado_temporal("Rostro no reconocido ❌")
+            self.mostrar_resultado_temporal("Rostro no reconocido")
 
+    #muestra un mensaje temporal
     def mostrar_resultado_temporal(self, texto, duracion_ms=2000):
         self.timer.stop()
         self.ui.lbl_camara.setText(texto)
         QTimer.singleShot(duracion_ms, self.timer.start)
 
+    #libera la camara al cerrar la ventana
     def closeEvent(self, event):
         if hasattr(self, "timer"):
             self.timer.stop()
         if self.cap.isOpened():
             self.cap.release()
         event.accept()
-
+ 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+
     ventana = MiVentana()
     ventana.show()
+
     sys.exit(app.exec())
