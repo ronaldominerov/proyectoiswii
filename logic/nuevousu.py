@@ -78,7 +78,7 @@ class VentanaNuevoUsuario(QWidget):
             self.ui.lbl_preview_foto.setPixmap(pixmap)
 
     def guardar_usuario(self):
-        # 1. Obtener los datos de la interfaz
+        # Obtener los datos de la interfaz
         nombre = self.ui.txt_nombre.text().strip()
         telefono = self.ui.txt_telefono.text().strip()
         contra = self.ui.txt_contra.text().strip()
@@ -92,7 +92,7 @@ class VentanaNuevoUsuario(QWidget):
             QMessageBox.warning(self, "Atención", "Por favor selecciona una fotografía.")
             return
 
-        # 2. Validación del rostro en la foto
+        # Validación del rostro en la foto
         try:
             imagen_temporal = face_recognition.load_image_file(str(self.ruta_foto_seleccionada))
             encodings = face_recognition.face_encodings(imagen_temporal)
@@ -100,32 +100,30 @@ class VentanaNuevoUsuario(QWidget):
             if not encodings:
                 QMessageBox.critical(self, "Error", "No se detectó ningún rostro en la foto. Intenta con otra.")
                 return
+            
+            encoding_bytes = encodings[0].tobytes()
+
         except Exception as e:
             QMessageBox.critical(self, "Error", f"No se pudo procesar la imagen: {e}")
             return
 
-        # 3. Guardado de foto local y en Base de Datos
+        # Guardado de foto local y en Base de Datos
         extension = self.ruta_foto_seleccionada.suffix.lower()
         ruta_destino = CARPETA_CONOCIDOS / f"{nombre}{extension}"
 
         try:
-            # A) Guardar en la carpeta local (por si lo necesitas para otras lógicas)
+            #Guardar en la carpeta local (por si acaso)
             shutil.copy(self.ruta_foto_seleccionada, ruta_destino)
 
-            # B) Preparar datos para la BD
-            # El tipo debe coincidir con el Check de SQL ('admin' o 'asistente')
+            # Preparar datos para la BD
             tipo_usuario = 'admin' if es_admin else 'asistente'
-
-            # Convertir la imagen a binario (BLOB) para guardarla en la base de datos
-            with open(self.ruta_foto_seleccionada, 'rb') as archivo_imagen:
-                rostro_blob = archivo_imagen.read()
 
             # Instanciar la BD, comprobar tablas e insertar usuario
             db = Database()
             db.createTables()
             db.insertUser(
                 Name=nombre, 
-                Face=rostro_blob, 
+                Face=encoding_bytes, #Subimos el vector numérico, no la foto
                 PhoneNumber=telefono, 
                 Type=tipo_usuario, 
                 Password=contra
@@ -133,11 +131,11 @@ class VentanaNuevoUsuario(QWidget):
 
             QMessageBox.information(self, "Éxito", f"Usuario '{nombre}' registrado correctamente en la base de datos.")
             
-            # 4. Limpiar todos los campos del formulario tras el éxito
+            # Limpiar todos los campos del formulario tras el éxito
             self.ui.txt_nombre.clear()
             self.ui.txt_telefono.clear()
             self.ui.txt_contra.clear()
-            self.ui.radio_alumno.setChecked(True) # Reinicia la selección
+            self.ui.radio_alumno.setChecked(True)
             self.ui.lbl_preview_foto.clear()
             self.ui.lbl_preview_foto.setText("Vista previa")
             self.ruta_foto_seleccionada = None

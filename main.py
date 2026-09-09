@@ -72,7 +72,7 @@ class MiVentana(QWidget):
             print("Aviso: No se encontró un botón llamado 'cerrar' en la interfaz.")
 
         self.frame_actual = None  
-        self.encodings_conocidos, self.nombres_conocidos = self.cargar_rostros_conocidos()
+        #self.encodings_conocidos, self.nombres_conocidos = self.cargar_rostros_conocidos()
 
         #camara
         self.frame_actual = None  #Guarda el último fotograma 
@@ -122,7 +122,7 @@ class MiVentana(QWidget):
 
     
 
-    #Aquí es donde se compara el rostro !!!
+    #Aquí es donde se compara el rostro!!!
     def verificar_asistencia(self):
         print("Boton presionado: Verificando...")
 
@@ -135,10 +135,14 @@ class MiVentana(QWidget):
         #    return
 
         rgb = cv2.cvtColor(self.frame_actual, cv2.COLOR_BGR2RGB)
-        nom, distancia = self.db.faceCompare(rgb)
+        id, nom, distancia = self.db.faceCompare(rgb)
 
         if nom is not None:
-            self.mostrar_resultado_temporal(f"Usuario {nom} reconocido")
+            registro_exitoso = self.db.registrarAsistenciaDemo(id)
+            if registro_exitoso:
+                self.mostrar_resultado_temporal(f"¡Asistencia de {nom} guardada!")
+            else:
+                self.mostrar_resultado_temporal(f"{nom} ya registró asistencia hoy")
         else:
             self.mostrar_resultado_temporal("Rostro no reconocido")
 

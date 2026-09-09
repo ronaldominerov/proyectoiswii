@@ -50,7 +50,7 @@ class VentanaLogin(QWidget):
 
         if acceso_concedido:
             if SCRIPT_MAIN.exists():
-                # Aqui esta la funcion de navegar
+                #Aqui esta la funcion de navegar
                 subprocess.Popen([sys.executable, str(SCRIPT_MAIN)])
                 self.close() 
             else:
