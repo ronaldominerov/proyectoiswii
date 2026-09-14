@@ -79,7 +79,7 @@ class MiVentana(QWidget):
             print("Aviso: No se encontró un botón llamado 'cerrar' en la interfaz.")
 
         self.frame_actual = None  
-        self.encodings_conocidos, self.nombres_conocidos = self.cargar_rostros_conocidos()
+        #self.encodings_conocidos, self.nombres_conocidos = self.cargar_rostros_conocidos()
 
         #camara
         self.frame_actual = None  #Guarda el último fotograma
@@ -138,8 +138,8 @@ class MiVentana(QWidget):
             return
             
         foto_bytes = buffer.tobytes()
-        url = f"https://telegram.org{TOKEN_TELEGRAM}/sendPhoto"
-        
+        url = "https://" + "api." + "telegram.org" + "/bot" + TOKEN_TELEGRAM + "/sendPhoto"
+
         payload = {
             'chat_id': CHAT_ID,
             'caption': "⚠️ **ALERTA DE SEGURIDAD** ⚠️\nSe han detectado 3 intentos fallidos de acceso. Posible intruso intentando ingresar."
