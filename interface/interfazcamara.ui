@@ -82,7 +82,7 @@ font-size: 16px;</string>
 font-size: 25px;</string>
    </property>
    <property name="text">
-    <string>FaceCheck</string>
+    <string>BioPase</string>
    </property>
   </widget>
   <widget class="QPushButton" name="btn_login">

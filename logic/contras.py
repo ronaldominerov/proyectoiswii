@@ -1,14 +1,12 @@
 import sys
-import subprocess
 from pathlib import Path
 
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, 
                                QLabel, QLineEdit, QPushButton, QMessageBox)
 
-from database.database import Database
+from logic.database.database import Database
 
 DIRECTORIO = Path(__file__).resolve().parent
-SCRIPT_NUEVO_USUARIO = DIRECTORIO / "nuevousu.py"
 
 class VentanaConfirmacion(QWidget):
     def __init__(self):
@@ -49,15 +47,15 @@ class VentanaConfirmacion(QWidget):
             return
 
         db = Database()
-        
         es_admin_valido = db.loginAdmin(telefono_ingresado, password_ingresada)
 
         if es_admin_valido:
-            if SCRIPT_NUEVO_USUARIO.exists():
-                subprocess.Popen([sys.executable, str(SCRIPT_NUEVO_USUARIO)])
-                self.close() 
-            else:
-                QMessageBox.critical(self, "Error", f"No se encontró el script {SCRIPT_NUEVO_USUARIO.name}")
+            # Importación local para instanciar la ventana
+            from logic.nuevousu import VentanaNuevoUsuario
+            
+            self.ventana_nueva = VentanaNuevoUsuario()
+            self.ventana_nueva.show()
+            self.close() 
         else:
             QMessageBox.warning(self, "Acceso Denegado", "Datos incorrectos o no tienes permisos de administrador.")
             self.txt_password.clear()

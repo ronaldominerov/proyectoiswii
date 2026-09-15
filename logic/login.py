@@ -1,14 +1,12 @@
 import sys
-import subprocess
 from pathlib import Path
 
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, 
                                QLabel, QLineEdit, QPushButton, QMessageBox)
 
-from database.database import Database
+from logic.database.database import Database
 
 DIRECTORIO = Path(__file__).resolve().parent
-SCRIPT_MAIN = DIRECTORIO.parent / "main.py"
 
 class VentanaLogin(QWidget):
     def __init__(self):
@@ -45,16 +43,19 @@ class VentanaLogin(QWidget):
             return
 
         db = Database()
-        
         acceso_concedido = db.loginGeneral(telefono_ingresado, password_ingresada)
 
         if acceso_concedido:
-            if SCRIPT_MAIN.exists():
-                # Aqui esta la funcion de navegar
-                subprocess.Popen([sys.executable, str(SCRIPT_MAIN)])
-                self.close() 
-            else:
-                QMessageBox.critical(self, "Error", f"No se encontró el script {SCRIPT_MAIN.name}")
+            # Aseguramos que Python pueda leer la carpeta raíz
+            import sys
+            sys.path.append(str(Path(__file__).resolve().parent.parent))
+            
+            # Importación local 
+            from main import MiVentana
+            
+            self.ventana_main = MiVentana()
+            self.ventana_main.show()
+            self.close() 
         else:
             QMessageBox.warning(self, "Acceso Denegado", "Teléfono o contraseña incorrectos.")
             self.txt_password.clear()

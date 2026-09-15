@@ -68,6 +68,7 @@ class Database():
         except Exception as e:
             print(f"No se pudo hacer la inserción: {e}")
 
+    #Fuera del alcance en este momento
     def insertClase(self, id_admin, nombre):
         try:
             self.cursor.execute("Insert Into Clase Values(Null, ?, ?)",(id_admin,nombre))
@@ -107,7 +108,33 @@ class Database():
         except Exception as e:
             print(f"Error al verificar credenciales: {e}")
             return False
+    def registrarAsistenciaDemo(self, id_asistente):
+        try:
+            # Verificamos si ya existe un registro de este usuario el día de hoy
+            self.cursor.execute("""
+                SELECT id FROM Registro 
+                WHERE id_asistente = ? 
+                AND DATE(fecha_hora) = DATE('now', 'localtime')
+            """, (id_asistente,))
+            
+            # Si fetchone() devuelve datos, significa que ya checó asistencia
+            if self.cursor.fetchone():
+                return False 
 
+            # Si no hay registro previo, lo insertamos
+            self.cursor.execute("""
+                INSERT INTO Registro (id_admin, id_asistente, id_clase, asistencia) 
+                VALUES (1, ?, 1, 1)
+            """, (id_asistente,))
+            self.connection.commit()
+            
+            return True #Registro exitoso
+            
+        except Exception as e:
+            print(f"Error al registrar asistencia en la demo: {e}")
+            return False
+
+    #Fuera del alcance por ahora
     def insertReg(self, id_admin, id_asistente, id_clase):
         try:
             self.cursor.execute("Insert Into Registro (id_admin,id_asistente,id_clase) Values(?,?,?)", (id_admin, id_asistente, id_clase))
@@ -131,7 +158,8 @@ class Database():
         except Exception as e:
             print(f"Error al recuperar los rostros: {e}")
             return []
-        
+
+    #Fuera de alcance por ahora
     def getRegister(self, id_asistente, id_clase):
         try:
             self.cursor.execute("Select id From Registro Where id_asistente = ? and id_clase = ? and Date(fecha_hora) = Date('now', 'localtime') ", (id_asistente, id_clase))
@@ -160,7 +188,7 @@ class Database():
     def faceCompare(self, frame_rgb):
         ubicaciones = face_recognition.face_locations(frame_rgb)
         if not ubicaciones:
-            return None, None  # no hay ninguna cara en el frame
+            return None, None, None # no hay ninguna cara en el frame
 
         #calcula el encoding de la cara encontrada
         encoding_desconocido = face_recognition.face_encodings(frame_rgb, ubicaciones)[0]
@@ -168,7 +196,7 @@ class Database():
         #Saca todos los encodings de la bd
         filas = self.getAllFaces()  # [(id, blob), (id, blob), ...]
         if not filas:
-            return None, None  #base de datos vacía
+            return None, None, None  #base de datos vacía
 
         #convierte el blob en un array de numpy
         ids = []
@@ -181,7 +209,7 @@ class Database():
             ids.append(id_usuario)
 
         if not encodings_conocidos:
-            return None, None
+            return None, None, None
 
         #calcula la distancia entre los otros encodings y el actual
         distancias = face_recognition.face_distance(encodings_conocidos, encoding_desconocido)
@@ -191,7 +219,8 @@ class Database():
 
         #debe ser menor a 0.6
         if distancias[idx] < self.TOLERANCIA:
+            id = ids[idx]
             nom = self.getName(ids[idx])
-            return nom, distancias[idx]
+            return id,nom, distancias[idx]
 
-        return None, None  
+        return None, None, None
