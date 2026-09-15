@@ -90,17 +90,27 @@ class MiVentana(QWidget):
 
 
     def abrir_contras(self):
-        if SCRIPT_CONTRAS.exists():
-            subprocess.Popen([sys.executable, str(SCRIPT_CONTRAS)])
-        else:
-            QMessageBox.critical(self, "Error", f"No se encontró el archivo: {SCRIPT_CONTRAS.name}")
+        try:
+            # Importación local de la ventana de confirmación
+            from logic.contras import VentanaConfirmacion
+            
+            self.ventana_contras = VentanaConfirmacion()
+            self.ventana_contras.show()
+            # Nota: No ponemos self.close() aquí para que la cámara siga 
+            # activa de fondo mientras el admin verifica su contraseña.
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"No se pudo abrir la ventana: {e}")
 
     def cerrar_sesion(self):
-        if SCRIPT_LOGIN.exists():
-            subprocess.Popen([sys.executable, str(SCRIPT_LOGIN)])
-            self.close()
-        else:
-            QMessageBox.critical(self, "Error", f"No se encontró el archivo: {SCRIPT_LOGIN.name}")
+        try:
+            # Importación local del Login
+            from logic.login import VentanaLogin
+            
+            self.ventana_login = VentanaLogin()
+            self.ventana_login.show()
+            self.close() # Aquí sí cerramos la cámara porque la sesión terminó
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"No se pudo cerrar sesión: {e}")
 
     def actualizar_frame(self):
             ok, frame = self.cap.read() #toma una foto de la camara
@@ -163,7 +173,11 @@ class MiVentana(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    ventana = MiVentana()
-    ventana.show()
+    # Importamos el Login directo desde la lógica
+    from logic.login import VentanaLogin
+
+    # Arrancamos la aplicación mostrando el Login
+    ventana_inicial = VentanaLogin()
+    ventana_inicial.show()
 
     sys.exit(app.exec())

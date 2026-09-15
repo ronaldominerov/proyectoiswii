@@ -10,7 +10,7 @@ from PySide6.QtGui import QPixmap
 
 # IMPORTANTE: Asegúrate de que el archivo de tu base de datos se llame 'database.py' 
 # y esté en la misma carpeta, o ajusta la importación según el nombre que le hayas dado.
-from database.database import Database
+from logic.database.database import Database
 
 DIRECTORIO = Path(__file__).resolve().parent
 RUTA_UI = DIRECTORIO.parent / "interface" / "interfaz_nuevo.ui"
