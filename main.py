@@ -1,11 +1,38 @@
-#Librerías
-from pathlib import Path #manejo de rutas
-import sys #para cerrar la app
-import cv2 #procesa los fotogramas, enciende y apaga la camara
-import numpy as np 
-import face_recognition #detecta y compara rostros a traves de un mapa de 128 valores (el encoding)
-import subprocess #para abrir otros scripts
+import sys
+import types
+from pathlib import Path
 
+# Creamos el módulo falso de pkg_resources ANTES de importar los modelos
+pkg_mock = types.ModuleType("pkg_resources")
+def fake_resource_filename(package_or_requirement, resource_name):
+    for folder in sys.path:
+        base_path = Path(folder)
+        p1 = base_path / "face_recognition_models" / resource_name
+        p2 = base_path / "face-recognition-models" / resource_name
+        if p1.exists(): return str(p1)
+        if p2.exists(): return str(p2)
+    return ""
+pkg_mock.resource_filename = fake_resource_filename
+sys.modules["pkg_resources"] = pkg_mock
+
+# Ahora que pkg_resources está simulado en memoria, ya podemos importar el modelo sin que truene
+try:
+    import face_recognition_models
+except ImportError:
+    ruta_site = Path(sys.executable).parent / "Lib" / "site-packages" / "face_recognition_models"
+    if ruta_site.exists():
+        sys.path.append(str(ruta_site.parent))
+    import face_recognition_models
+
+sys.modules["face_recognition_models"] = face_recognition_models
+
+# =====================================================================
+# 2. TUS LIBRERÍAS Y CÓDIGO ORIGINAL
+# =====================================================================
+import cv2 # procesa los fotogramas, enciende y apaga la camara
+import numpy as np 
+import face_recognition 
+import subprocess # para abrir otros scripts
 import requests         
 
 from PySide6.QtUiTools import QUiLoader
@@ -15,6 +42,7 @@ from PySide6.QtGui import QImage, QPixmap
 
 from logic.database.database import Database
 
+# --- RUTAS DE DIRECTORIOS ORIGINALES ---
 DIRECTORIO = Path(__file__).resolve().parent
 RUTA_UI = DIRECTORIO / "interface" / "interfazcamara.ui"
 ruta_imagen = DIRECTORIO / "imagenes" / "fondo.jpeg"
@@ -22,12 +50,12 @@ ruta_logo = DIRECTORIO / "imagenes" / "logo.png"
 
 SCRIPT_CONTRAS = DIRECTORIO / "logic/contras.py"  
 SCRIPT_LOGIN = DIRECTORIO / "logic/login.py"
-#CARPETA_CONOCIDOS = DIRECTORIO / "known_faces"
-#TOLERANCIA = 0.6
 
 # --- CONFIGURACIÓN DE TELEGRAM ---
 TOKEN_TELEGRAM = "8911262371:AAH6faZ1atoFqfKi0TTosW7IhN4kMwQtDpg"
 CHAT_ID = "8859127302"
+
+# ... (El resto de tu código hacia abajo se queda exactamente igual)
 
 class MiVentana(QWidget):
     def __init__(self):
@@ -150,12 +178,12 @@ class MiVentana(QWidget):
         }
         
         try:
-            print("Intentando conectar con los servidores de Telegram...")
+            #print("Intentando conectar con los servidores de Telegram...")
             respuesta = requests.post(url, data=payload, files=files)
             
             # Esto imprimirá el código (200 es éxito, 400 o 401 es error de ID/Token)
-            print(f"Código de respuesta de Telegram: {respuesta.status_code}")
-            print(f"Detalle del servidor: {respuesta.text}")
+            #print(f"Código de respuesta de Telegram: {respuesta.status_code}")
+            #print(f"Detalle del servidor: {respuesta.text}")
             
         except Exception as e:
             print(f"Error crítico al conectar con Telegram: {e}")
