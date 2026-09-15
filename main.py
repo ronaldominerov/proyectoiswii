@@ -130,11 +130,12 @@ class MiVentana(QWidget):
 
     def enviar_alerta_telegram(self):
         if self.frame_actual is None:
+            print("Error: No hay frame de cámara disponible.")
             return
             
-        # Convierte el frame a bytes formato JPEG directamente en memoria (sin crear archivos en el disco)
         ok, buffer = cv2.imencode('.jpg', self.frame_actual)
         if not ok:
+            print("Error: No se pudo codificar la imagen.")
             return
             
         foto_bytes = buffer.tobytes()
@@ -149,9 +150,15 @@ class MiVentana(QWidget):
         }
         
         try:
-            requests.post(url, data=payload, files=files)
+            print("Intentando conectar con los servidores de Telegram...")
+            respuesta = requests.post(url, data=payload, files=files)
+            
+            # Esto imprimirá el código (200 es éxito, 400 o 401 es error de ID/Token)
+            print(f"Código de respuesta de Telegram: {respuesta.status_code}")
+            print(f"Detalle del servidor: {respuesta.text}")
+            
         except Exception as e:
-            print(f"Error al conectar con Telegram: {e}")
+            print(f"Error crítico al conectar con Telegram: {e}")
 
     #Aquí es donde se compara el rostro !!!
     def verificar_asistencia(self):
